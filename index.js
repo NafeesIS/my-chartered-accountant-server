@@ -1,9 +1,9 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 //middleware
 
@@ -25,6 +25,35 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    const accountantCollection = client
+      .db("Accountant")
+      .collection("accountant_details");
+
+    app.get("/accountant_details", async (req, res) => {
+      const accountants = accountantCollection.find();
+      const result = await accountants.toArray();
+      res.send(result);
+    });
+
+    app.get("/accountant_details/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await accountantCollection.findOne(query);
+      res.send(result);
+    });
+    app.get("/accountant_by_name", async (req, res) => {
+      const name = req.query.name;
+      query = { name: { $regex: name, $options: "i" } };
+      const result = await accountantCollection
+        .find(query, {
+          projection: { _id: 1, name: 1 },
+        })
+        .toArray();
+      //   console.log(result);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -32,7 +61,7 @@ async function run() {
     );
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
